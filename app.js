@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var _ = require('lodash');
 var colors = require('chalk');
 var fs = require('fs').promises;
@@ -12,8 +14,9 @@ program
 	.option('-o, --output [file]', 'Export a collection from Mongo to file')
 	.option('--nuke', 'When importing, remove all records and replace them with the input')
 	.option('-v, --verbose', 'Be verbose - use multiple to increase verbosity', (v, total) => total + 1, 0)
-	.option('--db <databse>', 'Database to use')
+	.option('-d, --db <databse>', 'Database to use')
 	.option('--uri <uri>', 'URI string to use when connection, defaults to localhost + database')
+	.option('--ignore <fields...>', 'Ignore the specified fields either when reading or writing', '')
 	.option('-q, --query <key=val>', 'Set a query filter (dotted notation supported)', (v, total) => {
 		var bits = [key, val] = v.split(/\s*=\s*/, 2);
 		if (!bits.length == 2) throw `Failed to parse setting "${v}"`;
@@ -35,6 +38,7 @@ Promise.resolve()
 		if (!program.uri && !program.db) throw 'Either --db or --uri must be specified';
 
 		if (!program.uri) program.uri = `mongodb://localhost/${program.db}`;
+		program.ignore = program.ignore.split(/\s*,\s*/);
 	})
 	// }}}
 	// Connect {{{
@@ -66,9 +70,10 @@ Promise.resolve()
 				if (program.verbose) process.stdout.write(`Nuking ${program.collection}...`);
 				return mongoose.connection.collection(program.collection).remove();
 			})
-			.then(docs => Promise.all(docs.map(doc => {
-				return mongoose.connection.collection(program.collection).insert(doc);
-			})).then(()=> docs))
+			.then(docs => program.ignore.length ? docs.map(doc => _.omit(doc, program.ignore)) : docs)
+			.then(docs => Promise.all(docs.map(doc =>
+				mongoose.connection.collection(program.collection).insertOne(doc)
+			)).then(()=> docs))
 			.then(docs => {
 				if (program.verbose) process.stdout.write(`Written ${docs.length} to collection "${program.collection}"\n`);
 			})
@@ -79,6 +84,7 @@ Promise.resolve()
 		if (!program.output) return;
 		return Promise.resolve()
 			.then(()=> mongoose.connection.collection(program.collection).find(program.query).toArray())
+			.then(docs => program.ignore.length ? docs.map(doc => _.omit(doc, program.ignore)) : docs)
 			.then(docs => {
 				if (_.isString(program.output)) {
 					return fs.writeFile(program.output, JSON.stringify(docs, null, '\t'));
@@ -91,7 +97,6 @@ Promise.resolve()
 	// }}}
 	// End {{{
 	.then(()=> {
-		console.log(colors.cyan('FIXME'), 'All done');
 		process.exit(0);
 	})
 	.catch(err => {
