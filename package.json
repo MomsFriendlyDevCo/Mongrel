@@ -1,0 +1,18 @@
+{
+  "name": "@momsfriendlydevco/mongrel",
+  "version": "0.0.0",
+  "description": "Tool to quickly import/export Mongo collection contents to and from JSON",
+  "main": "app.js",
+  "keywords": [
+    "mocha",
+    "cli"
+  ],
+  "author": "Matt Carter <m@ttcarter.com>",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "commander": "^2.19.0",
+    "lodash": "^4.17.11",
+    "mongoose": "^5.4.0"
+  }
+}
