@@ -3,12 +3,22 @@
   "version": "0.0.0",
   "description": "Tool to quickly import/export Mongo collection contents to and from JSON",
   "main": "app.js",
+  "bin": {
+    "mongrel": "./app.js"
+  },
   "keywords": [
     "mocha",
     "cli"
   ],
   "author": "Matt Carter <m@ttcarter.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MomsFriendlyDevCo/Mongrel.git"
+  },
   "license": "MIT",
+  "engines": {
+    "node": ">=10.10.0"
+  },
   "dependencies": {
     "chalk": "^2.4.1",
     "commander": "^2.19.0",
