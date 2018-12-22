@@ -46,8 +46,10 @@ Promise.resolve()
 		return Promise.resolve()
 			.then(()=> {
 				if (_.isString(program.input)) {
+					if (program.verbose) process.stdout.write(`Reading input file ${program.input}...\n`);
 					return fs.readFile(program.input);
 				} else {
+					if (program.verbose) process.stdout.write(`Reading STDIN...\n`);
 					return new Promise(resolve => {
 						var buf = '';
 						process.stdin.on('data', data => buf += data.toString())
@@ -55,8 +57,21 @@ Promise.resolve()
 					});
 				}
 			})
-			.then(raw => JSON.parse(raw))
-			.then(docs => console.log('INPUT', docs))
+			.then(raw => {
+				if (program.verbose) process.stdout.write('Processing input...\n');
+				return JSON.parse(raw);
+			})
+			.then(raw => {
+				if (!program.nuke) return raw;
+				if (program.verbose) process.stdout.write(`Nuking ${program.collection}...`);
+				return mongoose.connection.collection(program.collection).remove();
+			})
+			.then(docs => Promise.all(docs.map(doc => {
+				return mongoose.connection.collection(program.collection).insert(doc);
+			})).then(()=> docs))
+			.then(docs => {
+				if (program.verbose) process.stdout.write(`Written ${docs.length} to collection "${program.collection}"\n`);
+			})
 	})
 	// }}}
 	// Output {{{
@@ -67,7 +82,7 @@ Promise.resolve()
 			.then(docs => {
 				if (_.isString(program.output)) {
 					return fs.writeFile(program.output, JSON.stringify(docs, null, '\t'));
-					process.stderr.write(`Written ${docs.length} records to "${program.output}"`);
+					process.stderr.write(`Written ${docs.length} records to "${program.output}"\n`);
 				} else {
 					process.stdout.write(JSON.stringify(docs, null, '\t'));
 				}
